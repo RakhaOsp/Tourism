@@ -3,18 +3,24 @@
 import { useState } from 'react';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
+import TravelPackageCard from './TravelPackageCard';
 
 interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  images?: string[];
+  packages?: TravelPackage[];
 }
 
-interface Destination {
-  name: string;
+interface TravelPackage {
+  id: string;
+  destination: string;
   description: string;
-  image: string;
+  imageUrl: string;
+  price: string;
+  duration: string;
+  highlights: string[];
+  includes: string[];
 }
 
 export default function ChatInterface() {
@@ -61,12 +67,11 @@ export default function ChatInterface() {
         throw new Error(data.error || 'Failed to get response');
       }
 
-      // Parse the response to extract any image URLs
       const aiMessage: Message = {
         content: data.response,
         role: 'assistant',
         timestamp: new Date(),
-        images: data.images || [],
+        packages: data.packages || [],
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -103,17 +108,10 @@ export default function ChatInterface() {
               <div className="prose">
                 {message.content}
               </div>
-              {message.images && message.images.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {message.images.map((image, idx) => (
-                    <div key={idx} className="relative aspect-video">
-                      <Image
-                        src={image}
-                        alt="Travel destination"
-                        fill
-                        className="rounded-lg object-cover"
-                      />
-                    </div>
+              {message.packages && message.packages.length > 0 && (
+                <div className="mt-6 grid grid-cols-1 gap-6">
+                  {message.packages.map((pkg) => (
+                    <TravelPackageCard key={pkg.id} package={pkg} />
                   ))}
                 </div>
               )}
@@ -130,7 +128,7 @@ export default function ChatInterface() {
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder={isLoading ? "AI is thinking..." : "Ask about your next adventure..."}
             disabled={isLoading}
-            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 text-gray-900 placeholder-gray-500"
           />
           <button
             onClick={handleSend}

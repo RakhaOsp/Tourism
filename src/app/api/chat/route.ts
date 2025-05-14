@@ -13,42 +13,92 @@ const openai = new OpenAI({
   apiKey: apiKey
 });
 
-// Sample destination data (in a real app, this would come from a database)
-const popularDestinations = {
+// Sample travel packages data (in a real app, this would come from a database)
+const travelPackages = {
   beach: [
     {
-      name: "Maldives",
-      description: "Luxury overwater villas and pristine beaches",
-      image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=1200"
+      id: "bali-luxury",
+      destination: "Bali Luxury Resort Package",
+      description: "Experience the ultimate luxury in Bali with this all-inclusive resort package.",
+      imageUrl: "https://images.unsplash.com/photo-1537996194471-e657df975ab4",
+      price: "$2,499",
+      duration: "7 days, 6 nights",
+      highlights: [
+        "Private villa with ocean view",
+        "Daily spa treatments",
+        "Cultural tours and activities",
+        "Private beach access"
+      ],
+      includes: [
+        "Round-trip flights",
+        "All meals and premium drinks",
+        "Airport transfers",
+        "Daily activities and entertainment"
+      ]
     },
     {
-      name: "Bali",
-      description: "Tropical paradise with rich culture",
-      image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200"
+      id: "maldives-overwater",
+      destination: "Maldives Overwater Villa Experience",
+      description: "Stay in a luxurious overwater villa in the crystal-clear waters of the Maldives.",
+      imageUrl: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd",
+      price: "$3,999",
+      duration: "5 days, 4 nights",
+      highlights: [
+        "Overwater villa accommodation",
+        "Underwater restaurant dining",
+        "Snorkeling and diving trips",
+        "Sunset cruise"
+      ],
+      includes: [
+        "Seaplane transfers",
+        "All-inclusive meals",
+        "Water activities",
+        "Romantic dinner setup"
+      ]
     }
   ],
   city: [
     {
-      name: "Tokyo",
-      description: "Modern metropolis with traditional charm",
-      image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200"
-    },
-    {
-      name: "Paris",
-      description: "City of lights and romance",
-      image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200"
+      id: "tokyo-explorer",
+      destination: "Tokyo City Explorer",
+      description: "Discover the perfect blend of traditional and modern Japan in Tokyo.",
+      imageUrl: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf",
+      price: "$1,999",
+      duration: "6 days, 5 nights",
+      highlights: [
+        "Guided city tours",
+        "Traditional tea ceremony",
+        "Robot restaurant experience",
+        "Mount Fuji day trip"
+      ],
+      includes: [
+        "Hotel accommodation",
+        "Daily breakfast",
+        "Public transport pass",
+        "Airport transfers"
+      ]
     }
   ],
   nature: [
     {
-      name: "Swiss Alps",
-      description: "Majestic mountains and scenic views",
-      image: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1200"
-    },
-    {
-      name: "Costa Rica",
-      description: "Rainforests and wildlife adventures",
-      image: "https://images.unsplash.com/photo-1518182170546-07661fd94144?w=1200"
+      id: "costa-rica-adventure",
+      destination: "Costa Rica Adventure Package",
+      description: "Experience the natural wonders and wildlife of Costa Rica.",
+      imageUrl: "https://images.unsplash.com/photo-1518182170546-07661fd94144",
+      price: "$2,299",
+      duration: "8 days, 7 nights",
+      highlights: [
+        "Rainforest hiking",
+        "Volcano tours",
+        "Wildlife watching",
+        "Beach relaxation"
+      ],
+      includes: [
+        "Eco-lodge accommodation",
+        "Most meals",
+        "Guided tours",
+        "Transportation"
+      ]
     }
   ]
 };
@@ -64,6 +114,19 @@ export async function POST(req: Request) {
                                   lastUserMessage.includes("recommendations") ||
                                   lastUserMessage.includes("popular") ||
                                   lastUserMessage.includes("options");
+
+    const isBeachRelated = lastUserMessage.includes("beach") ||
+                          lastUserMessage.includes("beaches") ||
+                          lastUserMessage.includes("ocean") ||
+                          lastUserMessage.includes("sea");
+
+    const isCityRelated = lastUserMessage.includes("city") ||
+                         lastUserMessage.includes("urban") ||
+                         lastUserMessage.includes("culture");
+
+    const isNatureRelated = lastUserMessage.includes("nature") ||
+                           lastUserMessage.includes("adventure") ||
+                           lastUserMessage.includes("wildlife");
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
@@ -91,25 +154,33 @@ If the user seems undecided, suggest popular destinations based on their interes
     });
 
     let response = completion.choices[0].message.content;
-    let images: string[] = [];
+    let packages: any[] = [];
 
-    // If the user is asking for suggestions, add images from our popular destinations
+    // If the user is asking for suggestions or mentioning specific types of destinations,
+    // add relevant travel packages
     if (isAskingForSuggestions) {
-      const allDestinations = [
-        ...popularDestinations.beach,
-        ...popularDestinations.city,
-        ...popularDestinations.nature
+      packages = [
+        ...travelPackages.beach,
+        ...travelPackages.city,
+        ...travelPackages.nature
       ];
-      images = allDestinations.slice(0, 4).map(dest => dest.image);
-      
-      // Add a note about the images to the response
-      response += "\n\nI've included some images of popular destinations for your inspiration. Would you like more specific information about any of these places?";
+    } else if (isBeachRelated) {
+      packages = travelPackages.beach;
+    } else if (isCityRelated) {
+      packages = travelPackages.city;
+    } else if (isNatureRelated) {
+      packages = travelPackages.nature;
+    }
+
+    // Add a note about the packages to the response
+    if (packages.length > 0) {
+      response += "\n\nI've included some travel packages that might interest you. Each package includes accommodation, activities, and other amenities. Click 'View details' on any package to learn more, or use the 'Book Now' button to start your reservation.";
     }
 
     return NextResponse.json(
       { 
         response,
-        images
+        packages
       },
       {
         status: 200,
